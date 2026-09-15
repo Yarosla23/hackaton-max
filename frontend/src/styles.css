@@ -1,0 +1,150 @@
+:root {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+  color: #142033;
+  background: #f3f6fa;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+button,
+a {
+  font: inherit;
+}
+
+.page-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 32px 20px;
+  background:
+    linear-gradient(90deg, transparent 49.9%, #dce3ec 50%, transparent 50.1%),
+    #f3f6fa;
+}
+
+.intro {
+  width: min(100%, 680px);
+  padding: clamp(32px, 7vw, 72px);
+  border: 1px solid #d4dce7;
+  border-top: 5px solid #2563eb;
+  background: #ffffff;
+  box-shadow: 0 24px 70px rgb(27 43 65 / 10%);
+}
+
+.eyebrow,
+.status__label {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.eyebrow {
+  margin: 0 0 18px;
+  color: #526174;
+  font-size: 0.75rem;
+}
+
+h1 {
+  margin: 0;
+  font-size: clamp(2.7rem, 9vw, 5.4rem);
+  line-height: 0.92;
+  letter-spacing: -0.065em;
+}
+
+.lead {
+  margin: 28px 0 44px;
+  color: #526174;
+  font-size: clamp(1.1rem, 3vw, 1.35rem);
+}
+
+.status {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  padding: 18px 20px;
+  border: 1px solid #d4dce7;
+  background: #f8fafc;
+}
+
+.status__dot {
+  width: 12px;
+  height: 12px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #7b8796;
+}
+
+.status--loading .status__dot {
+  animation: pulse 1.3s ease-in-out infinite;
+}
+
+.status--success .status__dot {
+  background: #16835d;
+}
+
+.status--error .status__dot {
+  background: #c03d3d;
+}
+
+.status__label {
+  display: block;
+  margin-bottom: 4px;
+  color: #68778b;
+  font-size: 0.65rem;
+}
+
+.status strong {
+  font-size: 0.95rem;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.actions a,
+.actions button {
+  min-height: 44px;
+  padding: 11px 16px;
+  border: 1px solid #b8c3d2;
+  color: #1f4da8;
+  background: #ffffff;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.actions a:hover,
+.actions button:hover {
+  border-color: #2563eb;
+}
+
+.actions a:focus-visible,
+.actions button:focus-visible {
+  outline: 3px solid #93b4ff;
+  outline-offset: 3px;
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.35;
+    transform: scale(0.75);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .status--loading .status__dot {
+    animation: none;
+  }
+}
