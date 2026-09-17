@@ -1,124 +1,140 @@
-# Hackathon MAX
+# Рынок рядом
 
-Бот и мини-приложение MAX для сравнения линейной вакансии с живым рынком труда.
-Пользователь задаёт должность, регион и зарплату; backend получает открытые
-вакансии «Работы России», рассчитывает рыночную позицию предложения, а бот
-публикует изменения в канал команды найма.
+MAX Mini App для малого бизнеса: владелец задаёт должность, регион и зарплату,
+приложение сравнивает предложение с вакансиями «Работы России», HeadHunter и
+опционально SuperJob, затем сохраняет ежедневный мониторинг.
 
-Сейчас репозиторий содержит техническую основу Django REST API, PostgreSQL и
-React/Vite. Продуктовый сценарий запланирован в
-[`docs/planning/`](docs/planning/README.md), но ещё не реализован. Конфигурация
-Docker Compose предназначена только для локальной разработки.
+Проект переписан на один TypeScript-стек без Django и PostgreSQL:
 
-## Запуск
+- React + Vite — статический Mini App;
+- Hono + Zod — API и проверяемые контракты;
+- YDB Serverless — пользователи, вакансии и рыночные снимки;
+- две Yandex Cloud Functions — HTTP API и webhook/плановый worker;
+- MAX Bridge и Bot API — авторизация и точка входа.
 
-На машине нужны только Docker и Docker Compose. Из корня проекта выполните:
+## Что уже работает
+
+1. MAX `initData` проверяется на backend через HMAC и срок действия.
+2. В локальной разработке доступна отдельная явно помеченная dev identity.
+3. Пользователь создаёт одну активную вакансию и запускает benchmark.
+4. Backend параллельно получает до 100 вакансий от каждого источника, исключает
+   неполные/не-RUB вилки и межплощадочные дубликаты, затем рассчитывает медиану,
+   диапазон, перцентиль и позицию предложения.
+5. Недоступность одной площадки не блокирует расчёт, если ответил другой
+   источник; UI показывает источник каждой вакансии и состав выборки.
+6. Снимок сохраняется в YDB, dashboard переживает перезапуск API.
+7. MAX webhook проверяет secret, на `bot_started` привязывает личный чат
+   пользователя и отправляет кнопку Mini App.
+8. Worker обновляет просроченные мониторинги и пишет в этот чат, если позиция
+   предложения изменилась или медиана рынка сдвинулась минимум на 5%.
+
+Демо-источник используется только локально и всегда видимо подписан в UI.
+Первый расчёт уведомление не создаёт. Публикация в групповой канал и его
+безопасная привязка не входят в текущий срез: сейчас alerts приходят только в
+личный чат с ботом, подтверждённый событием `bot_started`.
+
+## Локальный запуск
+
+Нужны Docker и Docker Compose:
 
 ```bash
-docker compose up
+docker compose up --build
 ```
-
-При первом запуске Compose соберёт образы, дождётся PostgreSQL, применит
-сохранённые миграции и запустит dev-серверы. Копировать `.env.example` не
-обязательно: небезопасные локальные значения уже заданы по умолчанию.
 
 Адреса:
 
-- frontend: <http://localhost:5173>;
-- backend: <http://localhost:8000>;
-- Swagger UI: <http://localhost:8000/api/docs/>;
-- OpenAPI schema: <http://localhost:8000/api/schema/>;
-- Django Admin: <http://localhost:8000/admin/>.
+- Mini App: <http://localhost:5173>;
+- API health: <http://localhost:8000/health>;
+- YDB UI: <http://localhost:8765>.
 
-## Переменные окружения
-
-Чтобы изменить локальные значения, скопируйте `.env.example` в `.env` и
-отредактируйте его:
-
-- `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` — подключение к БД;
-- `DJANGO_SECRET_KEY` — передаётся backend как `SECRET_KEY`;
-- `DJANGO_DEBUG` — передаётся backend как `DEBUG`;
-- `DJANGO_ALLOWED_HOSTS` — список хостов через запятую;
-- `VITE_PROXY_TARGET` — адрес backend внутри Docker-сети.
-
-Значения по умолчанию небезопасны и подходят только для локальной разработки.
-Production-настройки, HTTPS и управление реальными секретами здесь не
-реализованы.
-
-## Команды разработки
-
-Создать суперпользователя (автоматически он не создаётся):
+По умолчанию Compose использует воспроизводимый `MARKET_SOURCE=demo`. Для
+живого API:
 
 ```bash
-docker compose exec backend python manage.py createsuperuser
+MARKET_SOURCE=live docker compose up --build
 ```
 
-После изменения Django-моделей создать миграции и сохранить их в Git:
-
-```bash
-docker compose exec backend python manage.py makemigrations
-```
-
-Применить миграции вручную без перезапуска (при обычном старте они применяются
-автоматически):
-
-```bash
-docker compose exec backend python manage.py migrate
-```
-
-Запустить backend-тесты и Ruff:
-
-```bash
-docker compose exec backend pytest
-docker compose exec backend ruff check .
-```
-
-Проверить frontend:
-
-```bash
-docker compose exec frontend npm run typecheck
-docker compose exec frontend npm run lint
-docker compose exec frontend npm run build
-```
-
-### Новые зависимости
-
-Python-зависимость добавьте с точной версией в `backend/requirements.in`,
-пересоберите полный lock-файл в чистом Python-контейнере и затем пересоберите
-backend:
-
-```bash
-docker run --rm \
-  -v "$PWD/backend/requirements.in:/tmp/requirements.in:ro" \
-  python:3.13.7-slim-bookworm \
-  sh -c 'pip install --quiet -r /tmp/requirements.in && pip freeze' \
-  > backend/requirements.lock
-docker compose build backend
-docker compose up -d backend
-```
-
-Frontend-зависимость устанавливайте через одноразовый Compose-контейнер: он
-обновит `package.json`, `package-lock.json` и отдельный volume `node_modules`.
-После этого пересоберите образ:
-
-```bash
-docker compose run --rm frontend npm install <package>
-docker compose build frontend
-docker compose up -d frontend
-```
-
-## Остановка
-
-Остановить контейнеры, сохранив базу данных:
+Остановка:
 
 ```bash
 docker compose down
 ```
 
-Удалить контейнеры и volumes, включая всю локальную базу данных:
+Локальная YDB намеренно работает в RAM-режиме: это воспроизводимая среда для
+разработки, и её тестовые данные сбрасываются при пересоздании YDB-контейнера.
+Production-данные хранятся только в YDB Serverless.
+
+## Разработка без Docker
+
+Требуется Node.js 20.19+:
 
 ```bash
-docker compose down --volumes
+npm install
+npm run typecheck
+npm run lint
+npm test
+npm run build
 ```
 
-> Внимание: последняя команда необратимо удаляет данные PostgreSQL.
+Для memory-backed API:
+
+```bash
+DEV_AUTH_ENABLED=true MARKET_SOURCE=demo npm run dev
+```
+
+Frontend запускается отдельно:
+
+```bash
+npm run dev --workspace frontend -- --host 0.0.0.0
+```
+
+## Переменные production
+
+| Переменная | Значение |
+|---|---|
+| `NODE_ENV` | `production` |
+| `DATA_STORE` | `ydb` |
+| `YDB_CONNECTION_STRING` | endpoint и database YDB Serverless |
+| `YDB_AUTH_MODE` | `metadata` для service account функции |
+| `MARKET_SOURCE` | `live` |
+| `HH_USER_AGENT` | название приложения и контакт разработчика для HH |
+| `HH_ACCESS_TOKEN` | опциональный access token HH; рекомендуется для стабильного production-поиска |
+| `SUPERJOB_API_KEY` | опциональный `X-Api-App-Id`; при отсутствии SuperJob не вызывается |
+| `BOT_TOKEN` | токен бота MAX, только в окружении функции |
+| `MAX_WEBHOOK_SECRET` | secret подписки MAX |
+| `MAX_BOT_USERNAME` | имя бота без `@` |
+| `FRONTEND_ORIGIN` | точный HTTPS origin статического сайта |
+| `DEV_AUTH_ENABLED` | обязательно `false` |
+
+Секреты нельзя помещать в Vite variables, Git или Terraform state.
+
+## Сборка для Yandex Cloud
+
+```bash
+npm run build
+```
+
+Результат:
+
+- `frontend/dist/` — загрузить в публичный Object Storage bucket как статический
+  сайт;
+- `backend/build/api-function.js` — функция с entrypoint
+  `api-function.handler`;
+- `backend/build/worker-function.js` — функция с entrypoint
+  `worker-function.handler`.
+
+API Gateway направляет `/api/*` и `/health` в API function, `/max/webhook` — в
+worker function, а остальные пути — в статический bucket. Готовый шаблон:
+[`infra/api-gateway.yaml.example`](infra/api-gateway.yaml.example). Trigger Timer вызывает worker раз в сутки. Обе функции получают
+service account с минимальной ролью записи в YDB. После публикации нужно:
+
+1. один раз вызвать приватную API function после создания версии:
+   `yc serverless function invoke <API_FUNCTION_ID> -d '{"action":"migrate"}'`;
+2. настроить HTTPS URL Mini App в MAX;
+3. создать `POST /subscriptions` на публичный URL `/max/webhook`, передав тот же
+   `MAX_WEBHOOK_SECRET`;
+4. пройти smoke: событие `bot_started`, вход из MAX, создание вакансии, живой
+   benchmark, повторный timer-запуск после изменения рынка и личный alert.
+
+Схема и границы компонентов описаны в
+[`docs/planning/04-architecture.md`](docs/planning/04-architecture.md).

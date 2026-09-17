@@ -22,8 +22,9 @@ delivery configuration changes.
 Use the containerized commands documented in `README.md`; project dependencies
 may not exist on the host. For an affected layer, run at least:
 
-- Backend: the targeted pytest test, the complete `pytest` suite,
-  `ruff check .`, Django `check`, and `makemigrations --check --dry-run`.
+- Backend: the targeted Vitest test, the complete `npm test --workspace backend`,
+  `npm run typecheck --workspace backend`, `npm run lint --workspace backend`,
+  and the bundled function build.
 - Frontend: `npm run typecheck`, `npm run lint`, and `npm run build`.
 - Compose: `docker compose config --quiet`, then exercise the changed behavior
   through its real HTTP entry point when the stack is available.
@@ -43,7 +44,7 @@ performance that was not exercised.
 - Preserve standard project ports `8000` and `5173`. Temporary diagnostic
   overrides must stay outside committed configuration.
 - Do not remove Compose volumes during normal verification; they contain local
-  PostgreSQL data.
+  YDB data.
 
 ## Evidence-led debugging
 
@@ -52,7 +53,7 @@ performance that was not exercised.
   fresh logs, configuration, network, database state, then source code.
 - For a frontend-proxied backend `500`, repeat the same HTTP request, inspect
   `docker compose ps -a` and fresh backend logs, then verify network membership,
-  `DATABASE_URL`, and `VITE_PROXY_TARGET`. Change application code only when the
+  `YDB_CONNECTION_STRING`, and `VITE_PROXY_TARGET`. Change application code only when the
   evidence identifies application code as the cause.
 - Fix the root cause at the shared boundary rather than adding guards to each
   symptom path. Add the smallest regression test that protects the fix.

@@ -3,19 +3,15 @@
 .idea/
 .vscode/
 
-# Python
-__pycache__/
-*.py[cod]
-.pytest_cache/
-.ruff_cache/
-.venv/
-htmlcov/
-.coverage
-
-# Frontend
-frontend/node_modules/
+# Node
+node_modules/
+backend/build/
 frontend/dist/
 frontend/.vite/
+*.tsbuildinfo
 
 # Local data
-*.sqlite3
+.terraform/
+*.tfstate
+*.tfstate.*
+function.zip

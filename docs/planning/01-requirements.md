@@ -29,9 +29,9 @@ B2C/B2B/B2G (PDF, с. 5, 16).
 | 1 | Решение соответствует треку, проблема бизнеса обоснована (с. 7) | Аналитика линейной вакансии допустима; цифра 1,8 млн подтверждает макроконтекст, а workflow HR и влияние benchmark проверяются отдельно |
 | 2 | MAX — среда реализации/взаимодействия; основной сценарий проверяется в MAX (с. 7) | Browser dev-mode не закрывает допуск; нужен реальный бот и мини-приложение |
 | 3 | Функциональность доступна в мобильной и веб-версии MAX (с. 7) | Обязательна двухплатформенная MAX QA-матрица |
-| 4 | JavaScript/React рекомендованы, другие языки и API допустимы (с. 7) | React frontend и Django backend соответствуют условию |
+| 4 | JavaScript/React рекомендованы, другие языки и API допустимы (с. 7) | React frontend и Hono/TypeScript backend соответствуют условию |
 | 5 | Допустим бот или бот с мини-приложением; мини-приложение не может быть изолировано от бота (с. 7) | Бот обеспечивает вход/уведомления, UI подключается к нему |
-| 6 | Собственный API необязателен и сам не даёт баллов (с. 7) | Django API оправдывается сценарием, а не количеством endpoints |
+| 6 | Собственный API необязателен и сам не даёт баллов (с. 7) | Hono API оправдывается сценарием, а не количеством endpoints |
 | 7 | Запрещены закрытые библиотеки, частные API и чужой код без свободного разрешения на распространение/использование (с. 7) | Нужен аудит лицензий; в MVP — только воспроизводимый открытый источник данных |
 | 8 | Нельзя хранить рабочие токены, пароли, API-ключи и секреты в репозитории (с. 7) | Только environment/secret store; `.env.example` содержит placeholders |
 | 9 | Соблюдать законодательство РФ, актуальные правила MAX и хакатона (с. 7) | Перед сдачей повторная проверка правил и privacy/security review |
@@ -62,7 +62,7 @@ PDF рекомендует узкий сегмент, подтверждение
 только в техническом слайде/разрешённом канале сдачи. Это одновременно выполняет
 страницу 10 и запрет страницы 7.
 
-### Дополнительно, потому что у решения есть собственный Django API
+### Дополнительно, потому что у решения есть собственный API
 
 - полный HTTPS-адрес проверяемого API;
 - `openapi.yaml` или `openapi.json` версии OpenAPI 3.0/3.1;
@@ -152,36 +152,34 @@ PDF рекомендует узкий сегмент, подтверждение
 
 ## Состояние репозитория
 
-Состояние определено чтением файлов. Live-запуск Compose в рамках планирования
-не выполнялся.
+Состояние обновлено после переписывания приложения и локального Compose smoke
+17 сентября 2026 года.
 
 ### Уже реализовано и переиспользуется
 
-- `compose.yaml`: PostgreSQL 17.6, backend/frontend, DB healthcheck, volumes,
+- `compose.yaml`: локальная YDB в RAM-режиме, backend/frontend,
   стандартные порты `8000`/`5173`.
-- `backend/`: Django 5.2.6, DRF 3.16.1, psycopg, drf-spectacular, pytest, Ruff.
-- `apps.users.User` создан до продуктовых миграций.
-- `GET /api/health/` проверяет БД и скрывает детали исключения; есть два теста.
-- Django Admin, OpenAPI schema и Swagger UI уже подключены.
-- React 19, strict TypeScript, Router, TanStack Query и Vite proxy уже настроены.
+- `backend/`: Hono, Zod, YDB JS SDK, Vitest и сборка двух Cloud Functions.
+- YDB-таблицы хранят пользователя, монитор и снимки рынка.
+- `GET /health` проверяет YDB и скрывает внутренние детали исключения.
+- Реализованы MAX initData auth, composite market adapters, benchmark и стабильные JSON errors.
+- React 19, strict TypeScript, TanStack Query и Vite proxy уже настроены.
 - `.env.example`, lock-файлы, Dockerfiles, `.dockerignore` и dev README есть.
 
-Эти работы не дублируются в backlog. Но существующая OpenAPI schema ещё не
-доказывает выполнение страницы 10: нужны продуктовые endpoints, экспорт schema,
-`DATA-API.yaml`, test accounts/data и live HTTPS verification.
+Эти работы не дублируются в backlog. Локальный smoke не доказывает production:
+нужны live HTTPS deployment, test accounts/data и проверка внутри MAX.
 
 ### Подтверждённые пробелы
 
 | Пробел | Основание в коде | Связь с PDF |
 |---|---|---|
-| Нет предметной модели/API | Кроме `User` продуктовых моделей нет | Нужны company, vacancy monitor, market snapshot и alert |
-| Нет MAX-auth/Bridge/bot/webhook | Нет интеграционного кода | Обязательны вход, channel binding и реальный post |
-| Нет ролей и объектных прав | DRF permissions не настроены | Компания и её мониторинг должны быть изолированы |
-| Нет продуктового UI | Только healthcheck screen | Нужны vacancy form, dashboard и channel setup |
-| Нет внешнего адаптера/расчёта | Нет trudvsem adapter и benchmark service | Live источник является Must, а не дополнением |
+| Нет группового channel binding | Реализованы welcome webhook, личная привязка и alerts | Нужны безопасная привязка группы и реальный post |
+| Нет нескольких ролей | MVP поддерживает одного владельца | Добавить memberships перед совместной работой |
+| Нет channel setup UI | Vacancy form и dashboard готовы | Нужна привязка и проверка канала |
+| Не проверен live источник в облаке | Адаптер и расчёт готовы, local smoke использовал demo | Live источник является Must, а не дополнением |
 | Только local delivery | Нет public HTTPS/production settings | Проверка MAX/API, с. 9–10, 15 |
 | Нет submission API bundle | Нет `DATA-API.yaml`, test accounts/data | Собственный API, с. 10 |
 | Нет материалов презентации/пилота | Нет slides/evidence/pilot plan | Сдача и финал, с. 10, 14, 20 |
 
-Healthcheck, Swagger, custom user и Compose считаются готовой основой, а не
-новыми backlog-задачами. Их проверка входит в общий delivery gate.
+Healthcheck, auth, benchmark, Mini App и Compose считаются готовой основой, а не
+новыми backlog-задачами. Их повторная проверка входит в общий delivery gate.

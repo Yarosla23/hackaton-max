@@ -6,9 +6,10 @@ how that outcome should fit the project.
 
 ## Project map
 
-- `backend/`: Django and Django REST Framework applications.
+- `backend/`: Hono API, MAX worker, YDB adapter, and domain logic in TypeScript.
 - `frontend/`: React, TypeScript, Vite, and TanStack Query.
-- `compose.yaml`: local PostgreSQL, backend, and frontend services.
+- `packages/contracts/`: shared Zod schemas and API types.
+- `compose.yaml`: local YDB, backend, and frontend services.
 - `README.md`: canonical development and verification commands.
 - `rules/`: detailed instructions loaded only when their trigger applies.
 
@@ -18,7 +19,7 @@ Read every applicable file before editing code:
 
 - Any code, configuration, or test change: read
   [`rules/general.md`](rules/general.md).
-- Python, Django, DRF, ORM, database, or migration work: also read
+- Legacy Python or Django work: also read
   [`rules/python-django.md`](rules/python-django.md).
 - React, TypeScript, JavaScript, CSS, or frontend work: also read
   [`rules/react-typescript.md`](rules/react-typescript.md).
@@ -26,7 +27,7 @@ Read every applicable file before editing code:
   delivery configuration: also read
   [`rules/testing-and-delivery.md`](rules/testing-and-delivery.md).
 
-When a change crosses backend and frontend, read all four files and preserve the
+When a change crosses backend and frontend, read the applicable files and preserve the
 API contract across both sides.
 
 ## Required workflow

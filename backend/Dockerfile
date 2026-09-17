@@ -1,15 +1,18 @@
-FROM python:3.13.7-slim-bookworm
+FROM node:22.15.0-alpine3.21
 
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+WORKDIR /workspace
 
-WORKDIR /app
+COPY package.json ./
+COPY backend/package.json backend/package.json
+COPY frontend/package.json frontend/package.json
+COPY packages/contracts/package.json packages/contracts/package.json
+RUN npm install
 
-COPY requirements.lock ./
-RUN pip install --no-cache-dir --disable-pip-version-check -r requirements.lock
+COPY backend backend
+COPY packages/contracts packages/contracts
 
-COPY . .
+WORKDIR /workspace/backend
 
 EXPOSE 8000
 
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+CMD ["npm", "run", "dev"]

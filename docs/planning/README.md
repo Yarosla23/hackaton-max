@@ -48,7 +48,7 @@
 
 ## Проверенные границы текущего репозитория
 
-- уже есть Django/DRF, PostgreSQL, React/Vite, healthcheck, OpenAPI и Compose;
+- уже есть Hono/TypeScript, YDB, React/Vite, MAX auth/webhook и Compose;
 - продуктовые модели, MAX auth/bot/channel flow и benchmark ещё не реализованы;
 - изменение planning-документов не является проверкой live API или MAX;
 - рабочие токены и секреты не должны попадать в Git.

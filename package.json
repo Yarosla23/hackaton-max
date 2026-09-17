@@ -1,0 +1,20 @@
+{
+  "name": "hackathon-max",
+  "private": true,
+  "version": "0.2.0",
+  "workspaces": [
+    "backend",
+    "frontend",
+    "packages/contracts"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace @hackathon-max/contracts && npm run build --workspace backend && npm run build --workspace frontend",
+    "dev": "npm run dev --workspace backend",
+    "lint": "npm run lint --workspace backend && npm run lint --workspace frontend",
+    "test": "npm run test --workspace backend && npm run test --workspace frontend",
+    "typecheck": "npm run typecheck --workspace @hackathon-max/contracts && npm run typecheck --workspace backend && npm run typecheck --workspace frontend"
+  },
+  "engines": {
+    "node": ">=20.19"
+  }
+}

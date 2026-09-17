@@ -1,0 +1,72 @@
+openapi: 3.0.0
+info:
+  title: rynok-ryadom
+  version: 0.2.0
+
+x-yc-apigateway:
+  service_account_id: <SERVICE_ACCOUNT_ID>
+  ignoreTrailingSlashes: true
+
+paths:
+  /health:
+    get:
+      operationId: health
+      responses:
+        "200": { description: API and YDB are available }
+      x-yc-apigateway-integration: &api_function
+        type: cloud_functions
+        function_id: <API_FUNCTION_ID>
+        service_account_id: <SERVICE_ACCOUNT_ID>
+        payload_format_version: "0.1"
+
+  /api/{path+}:
+    x-yc-apigateway-any-method:
+      operationId: api
+      parameters:
+        - name: path
+          in: path
+          required: false
+          schema: { type: string }
+      x-yc-apigateway-integration: *api_function
+
+  /max/webhook:
+    post:
+      operationId: maxWebhook
+      responses:
+        "200": { description: MAX event accepted }
+      x-yc-apigateway-integration:
+        type: cloud_functions
+        function_id: <WORKER_FUNCTION_ID>
+        service_account_id: <SERVICE_ACCOUNT_ID>
+        payload_format_version: "0.1"
+
+  /:
+    get:
+      operationId: frontendIndex
+      responses:
+        "200": { description: Mini App HTML }
+      x-yc-apigateway-integration:
+        type: object_storage
+        bucket: <STATIC_BUCKET>
+        object: index.html
+        service_account_id: <SERVICE_ACCOUNT_ID>
+
+  /{file+}:
+    get:
+      operationId: frontendAssets
+      parameters:
+        - name: file
+          in: path
+          required: false
+          schema: { type: string }
+      responses:
+        "200": { description: Mini App static asset }
+      x-yc-apigateway-integration:
+        type: object_storage
+        bucket: <STATIC_BUCKET>
+        object: "{file}"
+        error_object:
+          object: index.html
+          statusCode: 200
+        service_account_id: <SERVICE_ACCOUNT_ID>
+

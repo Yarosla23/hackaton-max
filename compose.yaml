@@ -1,50 +1,51 @@
 services:
-  db:
-    image: postgres:17.6-alpine3.22
+  ydb:
+    image: ydbplatform/local-ydb:26.2.1.8
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-app}
-      POSTGRES_USER: ${POSTGRES_USER:-app}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-app}
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
-      interval: 2s
-      timeout: 5s
-      retries: 15
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+      YDB_USE_IN_MEMORY_PDISKS: "1"
+    ports:
+      - "2135:2135"
+      - "2136:2136"
+      - "8765:8765"
 
   backend:
     build:
-      context: ./backend
+      context: .
+      dockerfile: backend/Dockerfile
     command: >-
-      sh -c "python manage.py migrate &&
-      exec python manage.py runserver 0.0.0.0:8000"
+      sh -c "until npm run db:migrate; do sleep 2; done;
+      exec npm run dev"
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-app}:${POSTGRES_PASSWORD:-app}@db:5432/${POSTGRES_DB:-app}
-      SECRET_KEY: ${DJANGO_SECRET_KEY:-unsafe-local-development-key}
-      DEBUG: ${DJANGO_DEBUG:-true}
-      ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1,backend}
-    volumes:
-      - ./backend:/app
+      NODE_ENV: development
+      PORT: 8000
+      FRONTEND_ORIGIN: http://localhost:5173
+      DATA_STORE: ydb
+      YDB_CONNECTION_STRING: grpc://ydb:2136/local
+      YDB_AUTH_MODE: anonymous
+      MARKET_SOURCE: ${MARKET_SOURCE:-demo}
+      HH_USER_AGENT: ${HH_USER_AGENT:-RynokRyadom/0.3 (local-development)}
+      HH_ACCESS_TOKEN: ${HH_ACCESS_TOKEN:-}
+      SUPERJOB_API_KEY: ${SUPERJOB_API_KEY:-}
+      DEV_AUTH_ENABLED: "true"
+      DEV_USER_ID: ${DEV_USER_ID:-local-user}
+      DEV_USER_NAME: ${DEV_USER_NAME:-Ярослав}
     ports:
       - "8000:8000"
     depends_on:
-      db:
-        condition: service_healthy
+      - ydb
 
   frontend:
     build:
-      context: ./frontend
+      context: .
+      dockerfile: frontend/Dockerfile
     environment:
-      VITE_PROXY_TARGET: ${VITE_PROXY_TARGET:-http://backend:8000}
-    volumes:
-      - ./frontend:/app
-      - frontend_node_modules:/app/node_modules
+      VITE_PROXY_TARGET: http://backend:8000
     ports:
       - "5173:5173"
     depends_on:
       - backend
 
-volumes:
-  postgres_data:
-  frontend_node_modules:
+networks:
+  default:
+    driver_opts:
+      com.docker.network.driver.mtu: "1400"
